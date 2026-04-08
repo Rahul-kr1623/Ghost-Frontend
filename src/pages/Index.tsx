@@ -13,8 +13,8 @@ import {
   generateGhostId, generateAlias, Mood, Visibility, Post,
 } from "@/lib/ghost";
 
-// Connect to backend URL (Change port if needed)
-const socket = io("http://localhost:5000");
+// 🔥 Updated: Connecting to LIVE Render Backend
+const socket = io("https://ghost-backend-ngbg.onrender.com");
 
 const Index = () => {
   const [ghostId] = useState(() => generateGhostId());
@@ -40,7 +40,8 @@ const Index = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/posts");
+        // 🔥 Updated: GET request to LIVE Render Backend
+        const res = await axios.get("https://ghost-backend-ngbg.onrender.com/api/posts");
         setPosts(res.data);
       } catch (error) {
         console.error("Failed to fetch posts", error);
@@ -84,8 +85,8 @@ const Index = () => {
     };
 
     try {
-      // Send to backend
-      await axios.post("http://localhost:5000/api/posts", newPost);
+      // 🔥 Updated: POST request to LIVE Render Backend
+      await axios.post("https://ghost-backend-ngbg.onrender.com/api/posts", newPost);
       // We don't need to manually update local state here because the socket "new_post" event will handle it
       toast("Spilled into the void 👻", {
         description: "Your post will fade in 2 hours.",
@@ -101,7 +102,6 @@ const Index = () => {
         p.id === postId ? { ...p, echoes: [...p.echoes, echo] } : p
       )
     );
-    // Note: To make echoes live, you'd add an API/Socket call here
   };
 
   const handleReport = (postId: string) => {
