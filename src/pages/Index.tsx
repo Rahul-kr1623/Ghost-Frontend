@@ -13,12 +13,26 @@ import {
   generateGhostId, generateAlias, Mood, Visibility, Post,
 } from "@/lib/ghost";
 
-// 🔥 Updated: Connecting to LIVE Render Backend
 const socket = io("https://ghost-backend-ngbg.onrender.com");
 
 const Index = () => {
-  const [ghostId] = useState(() => generateGhostId());
-  const [alias] = useState(() => generateAlias());
+  // 🔥 UPDATED: Identity saved in Session Storage
+  const [ghostId] = useState(() => {
+    const saved = sessionStorage.getItem('ghostId');
+    if (saved) return saved;
+    const newId = generateGhostId();
+    sessionStorage.setItem('ghostId', newId);
+    return newId;
+  });
+
+  const [alias] = useState(() => {
+    const saved = sessionStorage.getItem('alias');
+    if (saved) return saved;
+    const newAlias = generateAlias();
+    sessionStorage.setItem('alias', newAlias);
+    return newAlias;
+  });
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [activeChatPostId, setActiveChatPostId] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
@@ -36,11 +50,9 @@ const Index = () => {
 
   const handleSplashComplete = useCallback(() => setShowSplash(false), []);
 
-  // Fetch initial posts from API
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        // 🔥 Updated: GET request to LIVE Render Backend
         const res = await axios.get("https://ghost-backend-ngbg.onrender.com/api/posts");
         setPosts(res.data);
       } catch (error) {
@@ -50,7 +62,6 @@ const Index = () => {
     fetchPosts();
   }, []);
 
-  // Listen for new posts via socket
   useEffect(() => {
     socket.on("new_post", (newPost: Post) => {
       setPosts((prev) => [newPost, ...prev]);
@@ -60,7 +71,6 @@ const Index = () => {
     };
   }, []);
 
-  // Prune expired posts locally
   useEffect(() => {
     const interval = setInterval(() => {
       setPosts((prev) =>
@@ -85,9 +95,7 @@ const Index = () => {
     };
 
     try {
-      // 🔥 Updated: POST request to LIVE Render Backend
       await axios.post("https://ghost-backend-ngbg.onrender.com/api/posts", newPost);
-      // We don't need to manually update local state here because the socket "new_post" event will handle it
       toast("Spilled into the void 👻", {
         description: "Your post will fade in 2 hours.",
       });
@@ -159,7 +167,7 @@ const Index = () => {
           currentGhostId={ghostId}
           currentAlias={alias}
           onClose={() => setActiveChatPostId(null)}
-          socket={socket} // Pass socket to Chat
+          socket={socket}
         />
       )}
     </div>

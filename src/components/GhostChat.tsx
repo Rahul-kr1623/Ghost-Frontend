@@ -7,7 +7,7 @@ interface GhostChatProps {
   currentGhostId: string;
   currentAlias: string;
   onClose: () => void;
-  socket: any; // Backend se connect karne ke liye
+  socket: any;
 }
 
 const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: GhostChatProps) => {
@@ -21,37 +21,41 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
     },
   ]);
   const [input, setInput] = useState("");
-  const [ghostCount, setGhostCount] = useState(2); // Default ghosts
+  const [ghostCount, setGhostCount] = useState(2);
   const [selfDestructWarning, setSelfDestructWarning] = useState(true);
   const [isKilling, setIsKilling] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 🔥 SOCKET MAGIC: Real-time Connection Setup 🔥
+  // 🔥 UPDATED: Socket logic with History
   useEffect(() => {
     if (!socket) return;
 
-    // Room join karo
     socket.emit("join_thread", post.id);
+
+    const handleChatHistory = (history: ChatMessage[]) => {
+      setMessages((prev) => {
+        const newMessages = history.filter(h => !prev.some(p => p.id === h.id));
+        return [...prev, ...newMessages];
+      });
+    };
 
     const handleReceiveMessage = (messageData: ChatMessage) => {
       setMessages((prev) => {
-        // Bulletproof check: Agar message pehle se hai, toh add mat karo (Prevents double messages)
         if (prev.some(msg => msg.id === messageData.id)) return prev;
         return [...prev, messageData];
       });
     };
 
-    // Jab backend message bheje (tumhara apna ya kisi aur ka)
+    socket.on("chat_history", handleChatHistory);
     socket.on("receive_message", handleReceiveMessage);
 
-    // Jab chat close karo toh room leave karo
     return () => {
       socket.emit("leave_thread", post.id);
+      socket.off("chat_history", handleChatHistory);
       socket.off("receive_message", handleReceiveMessage);
     };
   }, [socket, post.id]);
@@ -60,20 +64,18 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
     if (!input.trim()) return;
 
     const newMessage: ChatMessage = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, // Unique ID
+      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
       ghostId: currentGhostId,
       alias: currentAlias,
       content: input.trim(),
       timestamp: Date.now(),
     };
 
-    // Sirf backend ko bhejo. Server 'receive_message' trigger karega jisse message UI mein aayega.
     socket.emit("send_message", {
       roomId: post.id,
       ...newMessage
     });
 
-    // Input box khali kar do
     setInput("");
   };
 
@@ -88,7 +90,6 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
     }`}
     style={{ animation: "slide-up 0.3s ease-out" }}
     >
-      {/* Header */}
       <div className="glass border-b border-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors">
@@ -103,7 +104,6 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
           </div>
         </div>
 
-        {/* Kill Switch */}
         <button
           onClick={handleKillSwitch}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs font-medium hover:bg-destructive/20 transition-all kill-switch-glow"
@@ -113,7 +113,6 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
         </button>
       </div>
 
-      {/* Self-destruct warning */}
       {selfDestructWarning && (
         <div className="mx-4 mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-neon-orange/5 border border-neon-orange/20 text-neon-orange text-xs">
           <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -124,7 +123,6 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
         </div>
       )}
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map((msg) => {
           const isMe = msg.ghostId === currentGhostId;
@@ -149,7 +147,6 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="glass border-t border-border px-4 py-3">
         <div className="flex items-center gap-2 max-w-2xl mx-auto">
           <input
