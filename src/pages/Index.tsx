@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import axios from "axios";
 import { io } from "socket.io-client";
+import { BookOpen } from "lucide-react"; // 🔥 For Stealth Mode UI
 
 import GhostHeader from "@/components/GhostHeader";
 import PostCard from "@/components/PostCard";
@@ -16,7 +17,6 @@ import {
 const socket = io("https://ghost-backend-ngbg.onrender.com");
 
 const Index = () => {
-  // 🔥 UPDATED: Identity saved in Session Storage
   const [ghostId] = useState(() => {
     const saved = sessionStorage.getItem('ghostId');
     if (saved) return saved;
@@ -37,6 +37,31 @@ const Index = () => {
   const [activeChatPostId, setActiveChatPostId] = useState<string | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [activeMood, setActiveMood] = useState<Mood | "all">("all");
+
+  // 🔥 NEW STATES: Stealth Mode & Live Stats
+  const [isStealth, setIsStealth] = useState(false);
+  const [liveGhosts, setLiveGhosts] = useState(1);
+
+  // 🔥 EFFECT: Boss Key (Stealth Mode)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsStealth(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // 🔥 EFFECT: Live Stats Listener
+  useEffect(() => {
+    socket.on('stats_update', (data) => {
+      setLiveGhosts(data.onlineGhosts);
+    });
+    return () => {
+      socket.off('stats_update');
+    };
+  }, []);
 
   const activePost = useMemo(
     () => posts.find((p) => p.id === activeChatPostId),
@@ -121,6 +146,23 @@ const Index = () => {
     });
   };
 
+  // 🔥 STEALTH MODE UI RETURN
+  if (isStealth) {
+    return (
+      <div className="min-h-screen bg-white text-black p-8 font-serif">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-2 border-b pb-4 mb-6">
+            <BookOpen className="w-8 h-8 text-blue-600" />
+            <h1 className="text-3xl font-normal text-gray-700">Google Scholar</h1>
+          </div>
+          <input type="text" className="w-full border border-gray-300 rounded p-3 mb-6" placeholder="Search scholarly articles..." />
+          <p className="text-sm text-gray-500">Articles · Case law · Recommended for you</p>
+          <div className="mt-20 text-center text-xs text-gray-400">Press 'Esc' to return to the void</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {showSplash && (
@@ -130,7 +172,15 @@ const Index = () => {
       <GhostHeader ghostId={ghostId} alias={alias} />
 
       <main className="flex-1 container max-w-2xl mx-auto px-4 py-6 pb-36 space-y-4">
-        <MoodFilter activeMood={activeMood} onMoodChange={setActiveMood} />
+        
+        {/* 🔥 LIVE STATS HEADER */}
+        <div className="flex items-center justify-between mb-2">
+           <MoodFilter activeMood={activeMood} onMoodChange={setActiveMood} />
+           <div className="glass px-3 py-1.5 rounded-full text-xs font-mono text-primary animate-pulse flex items-center gap-2">
+             <div className="w-2 h-2 rounded-full bg-primary" />
+             {liveGhosts} Ghosts in the Void
+           </div>
+        </div>
 
         {filteredPosts.map((post, i) => (
           <div

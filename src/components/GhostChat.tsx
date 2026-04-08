@@ -26,15 +26,22 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
   const [isKilling, setIsKilling] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 🔥 NEW: Typing Indicator States
+  const [typingGhost, setTypingGhost] = useState<string | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 🔥 UPDATED: Socket logic with History
   useEffect(() => {
     if (!socket) return;
 
     socket.emit("join_thread", post.id);
+
+    // 🔥 Listen for typing events
+    socket.on("typing", (alias: string) => setTypingGhost(alias));
+    socket.on("stop_typing", () => setTypingGhost(null));
 
     const handleChatHistory = (history: ChatMessage[]) => {
       setMessages((prev) => {
@@ -48,6 +55,8 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
         if (prev.some(msg => msg.id === messageData.id)) return prev;
         return [...prev, messageData];
       });
+      // Clear typing indicator when message arrives
+      setTypingGhost(null);
     };
 
     socket.on("chat_history", handleChatHistory);
@@ -57,8 +66,26 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
       socket.emit("leave_thread", post.id);
       socket.off("chat_history", handleChatHistory);
       socket.off("receive_message", handleReceiveMessage);
+      socket.off("typing");
+      socket.off("stop_typing");
     };
   }, [socket, post.id]);
+
+  // 🔥 Handle input changes to emit typing events
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+    
+    if (e.target.value.trim() !== "") {
+      socket.emit("typing", { roomId: post.id, alias: currentAlias });
+      
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("stop_typing", post.id);
+      }, 1500);
+    } else {
+      socket.emit("stop_typing", post.id);
+    }
+  };
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -75,6 +102,10 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
       roomId: post.id,
       ...newMessage
     });
+    
+    // Stop typing immediately on send
+    socket.emit("stop_typing", post.id);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
 
     setInput("");
   };
@@ -148,11 +179,20 @@ const GhostChat = ({ post, currentGhostId, currentAlias, onClose, socket }: Ghos
       </div>
 
       <div className="glass border-t border-border px-4 py-3">
-        <div className="flex items-center gap-2 max-w-2xl mx-auto">
+        {/* 🔥 TYPING INDICATOR UI */}
+        <div className="max-w-2xl mx-auto h-6">
+          {typingGhost && (
+            <p className="text-xs font-mono text-primary italic animate-pulse">
+              Ghost "{typingGhost}" is whispering...
+            </p>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2 max-w-2xl mx-auto mt-1">
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
             placeholder="Whisper to the void..."
             className="flex-1 bg-muted/50 border border-border rounded-xl px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/30 focus:ring-1 focus:ring-primary/20 transition-all"
