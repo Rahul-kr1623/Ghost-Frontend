@@ -1,5 +1,7 @@
 # 👻 Ghost Protocol: The Anonymous Void
 
+![Ghost Protocol Banner](screenshot.png)
+
 > **"Whisper to the void. Watch it fade. No traces. No regrets."**
 
 Ghost Protocol is a high-stakes, low-anxiety ephemeral social space designed for students. It’s where your thoughts live for a moment and vanish forever. Built with the **MERN Stack** and **Socket.io** for real-time spectral communication.
@@ -54,23 +56,28 @@ Live counter showing exactly how many ghosts are currently haunting the protocol
 
 1. **Clone the Repo**
    ```bash
-   git clone [https://github.com/Rahul-kr1623/Ghost-Frontend.git](https://github.com/Rahul-kr1623/Ghost-Frontend.git)
-Install Dependencies
+   git clone https://github.com/Rahul-kr1623/Ghost-Frontend.git
+   ```
+2. **Install Dependencies**
 
-Bash
-npm install
-Set Environment Variables
-Create a .env in the backend and add your MONGO_URI.
+   ```bash
+   npm install
+   ```
+3. **Set Environment Variables**
 
-Summon the Ghosts (Run)
+   Create a .env in the backend and add your MONGO_URI.
 
-Bash
-# Frontend
-npm run dev
+4. **Summon the Ghosts (Run)**
 
-# Backend
-node server.js
-🛡️ Privacy First
-We use SessionStorage to keep your alias consistent during a session, but as soon as you close the tab, your identity is erased. No cookies, no trackers, just vibes.
+   ```bash
+   # Frontend
+   npm run dev
 
-Built with 💀 for VibeHack '26 | Maintained by the Ghost Technical Team.
+   # Backend
+   node server.js
+   ```
+**🛡️ Privacy First**
+
+   We use SessionStorage to keep your alias consistent during a session, but as soon as you close the tab, your identity is erased. No cookies, no trackers, just    vibes.
+
+   Built with 💀 for VibeHack '26
