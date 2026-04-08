@@ -76,6 +76,13 @@ Live counter showing exactly how many ghosts are currently haunting the protocol
    # Backend
    node server.js
    ```
+
+## 🔗 Project Links
+
+* **Live Demo:** [https://ghostprotocol.vercel.app/](https://ghostprotocol.vercel.app/)
+* **Backend Repository:** [https://github.com/Rahul-kr1623/Ghost-Backend](https://github.com/Rahul-kr1623/Ghost-Backend)
+* **API Documentation:** [Included in Backend README]
+
 **🛡️ Privacy First**
 
    We use SessionStorage to keep your alias consistent during a session, but as soon as you close the tab, your identity is erased. No cookies, no trackers, just    vibes.
